@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Travel Guide</title>
+
+  <link
+    href="assets/vendor/fonts.css"
+    rel="stylesheet">
+  <script src="assets/vendor/tailwindcss.js"></script>
+
+  <style>
+    .no-scrollbar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .no-scrollbar {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+
+    audio::-webkit-media-controls-panel {
+      background-color: #f9fafb;
+    }
+
+    .place-card {
+      transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+      transform: translateZ(0);
+      overflow: hidden;
+      isolation: isolate;
+      max-width: 340px;
+    }
+
+    .place-carousel {
+      height: 200px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .place-carousel-slide {
+      display: none;
+      height: 100%;
+    }
+
+    .place-carousel-slide.active {
+      display: block;
+    }
+
+    .place-carousel-slide img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      object-position: center center;
+    }
+
+    .place-carousel-control {
+      position: absolute;
+      top: 50%;
+      z-index: 20;
+      width: 30px;
+      height: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      border-radius: 999px;
+      color: white;
+      background: rgba(17, 24, 39, 0.65);
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      transform: translateY(-50%);
+      cursor: pointer;
+      transition: 180ms ease;
+    }
+
+    .place-carousel-control:hover,
+    .place-carousel-play:hover {
+      background: rgba(17, 24, 39, 0.88);
+      transform: translateY(-50%) scale(1.08);
+    }
+
+    .place-carousel-control.prev {
+      left: 10px;
+    }
+
+    .place-carousel-control.next {
+      right: 10px;
+    }
+
+    .place-carousel-toolbar {
+      position: absolute;
+      right: 10px;
+      bottom: 10px;
+      left: 10px;
+      z-index: 20;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .place-carousel-indicators {
+      display: flex;
+      gap: 5px;
+    }
+
+    .place-carousel-indicator,
+    .place-carousel-play {
+      width: 8px;
+      height: 8px;
+      padding: 0;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.65);
+      cursor: pointer;
+    }
+
+    .place-carousel-indicator.active {
+      width: 20px;
+      background: white;
+    }
+
+    .place-carousel-play {
+      width: 24px;
+      height: 24px;
+      color: white;
+      background: rgba(17, 24, 39, 0.65);
+      font-size: 11px;
+    }
+
+    .cards-grid.faded {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 32px;
+      padding-top: 12px;
+    }
+
+    .cards-grid.faded .place-card {
+      display: none;
+    }
+
+    .cards-grid.faded .place-card.active {
+      display: block;
+      width: 100%;
+      max-width: 360px;
+      cursor: default;
+      animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    .cards-grid.search-row {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: flex-start;
+      gap: 32px;
+    }
+
+    .cards-grid.search-row .place-card:not(.search-preview-card) {
+      flex: 0 1 340px;
+      max-width: 340px;
+    }
+
+    .feature-toolbar {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      align-items: center;
+      margin: 24px auto 0;
+      max-width: 1280px;
+    }
+
+    .feature-toolbar select,
+    .feature-toolbar button,
+    .clear-search {
+      border: 1px solid #e5e7eb;
+      border-radius: 999px;
+      background: white;
+      padding: 9px 14px;
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+    }
+
+    .clear-search {
+      position: absolute;
+      right: 42px;
+      top: 8px;
+      padding: 2px 6px;
+      border: 0;
+      color: #9ca3af;
+      background: transparent;
+    }
+
+    .favorite-button {
+      position: absolute;
+      right: 14px;
+      top: 14px;
+      z-index: 25;
+      border: 0;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.9);
+      padding: 7px 9px;
+      cursor: pointer;
+    }
+
+    .favorite-button.active { color: #ef4444; }
+    .carousel-counter {
+      color: white;
+      background: rgba(17, 24, 39, 0.65);
+      border-radius: 999px;
+      padding: 3px 7px;
+      font-size: 10px;
+    }
+
+    .back-to-top {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 50;
+      display: none;
+      border: 0;
+      border-radius: 999px;
+      background: #111827;
+      color: white;
+      padding: 12px 15px;
+      cursor: pointer;
+    }
+
+    body.dark-mode { background: #111827; color: #e5e7eb; }
+    body.dark-mode .place-card,
+    body.dark-mode #experience > div,
+    body.dark-mode .feature-toolbar select,
+    body.dark-mode .feature-toolbar button { background: #1f2937; color: #e5e7eb; border-color: #374151; }
+    body.dark-mode h3, body.dark-mode strong { color: #f9fafb; }
+
+    @keyframes slideUp {
+      from {
+        opacity: 0;
+        transform: translateY(40px) scale(0.95);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    #experience {
+      transition: all 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+    }
+
+    #experience.hidden {
+      display: none;
+    }
+
+    #experience:not(.visible) {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    #experience.visible {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Layout polish */
+    :root {
+      --brand: #ff7a18;
+      --brand-dark: #e85d04;
+      --ink: #111827;
+      --muted: #6b7280;
+      --line: #e8e7e4;
+      --surface: #ffffff;
+      --page: #fdfbf7;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      overflow-x: hidden;
+      background:
+        radial-gradient(circle at 8% 0%, rgba(255, 138, 31, 0.08), transparent 27rem),
+        var(--page);
+    }
+
+    header {
+      height: 76px;
+      background: rgba(255, 255, 255, 0.88) !important;
+      border-bottom-color: rgba(229, 231, 235, 0.8) !important;
+    }
+
+    header > div {
+      height: 76px !important;
+      max-width: 1440px;
+      margin: 0 auto;
+      padding-left: clamp(18px, 4vw, 56px) !important;
+      padding-right: clamp(18px, 4vw, 56px) !important;
+    }
+
+    header img {
+      width: 22px;
+      height: 22px;
+    }
+
+    header input {
+      height: 46px;
+      border-color: var(--line) !important;
+      background: rgba(249, 250, 251, 0.8) !important;
+      padding-left: 18px !important;
+    }
+
+    header input:focus {
+      box-shadow: 0 0 0 4px rgba(255, 122, 24, 0.12) !important;
+    }
+
+    #searchBtn {
+      min-width: 118px;
+      height: 46px;
+      box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
+    }
+
+    #themeToggle {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 42px;
+      height: 42px;
+      flex: 0 0 42px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: var(--surface);
+      color: var(--ink);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      transition: 180ms ease;
+    }
+
+    #themeToggle:hover {
+      color: var(--brand-dark);
+      border-color: rgba(255, 122, 24, 0.45);
+      transform: translateY(-1px);
+    }
+
+    section.pt-32 {
+      padding-top: 112px !important;
+      padding-bottom: 72px !important;
+    }
+
+    .feature-toolbar {
+      width: 100%;
+      max-width: none;
+      min-height: 58px;
+      margin: 16px auto 28px;
+      padding: 8px;
+      gap: 8px;
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.76);
+      box-shadow: 0 10px 30px rgba(17, 24, 39, 0.05);
+      backdrop-filter: blur(12px);
+    }
+
+    .feature-toolbar.destination-open {
+      display: none;
+    }
+
+    #searchMessage {
+      grid-column: 1 / -1;
+      margin: 16px auto;
+      max-width: 520px;
+      padding: 36px 24px !important;
+      border: 1px dashed var(--line);
+      border-radius: 24px;
+      background: rgba(255, 255, 255, 0.72);
+      color: var(--muted);
+      text-align: center;
+      box-shadow: 0 10px 25px rgba(17, 24, 39, 0.04);
+    }
+
+    #searchMessage strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--ink);
+      font-family: 'Playfair Display', serif;
+      font-size: 1.35rem;
+    }
+
+    #searchMessage button {
+      margin-top: 18px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 9px 16px;
+      background: var(--surface);
+      color: var(--brand-dark);
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    .feature-toolbar select,
+    .feature-toolbar button {
+      min-height: 40px;
+      border-color: transparent;
+      color: #374151;
+      background: transparent;
+      transition: 180ms ease;
+    }
+
+    .feature-toolbar select {
+      min-width: 168px;
+      padding-right: 34px;
+    }
+
+    .feature-toolbar select:hover,
+    .feature-toolbar button:hover {
+      border-color: var(--line);
+      background: var(--surface);
+      color: var(--brand-dark);
+      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.06);
+    }
+
+    #favoritesToggle,
+    #randomDestination {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+    }
+
+    #resultCount {
+      margin-left: auto;
+      padding: 0 12px;
+      color: var(--muted);
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .cards-grid {
+      grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)) !important;
+      align-items: stretch;
+      gap: clamp(18px, 2.2vw, 30px) !important;
+      min-height: 480px !important;
+    }
+
+    .place-card {
+      width: 100%;
+      max-width: none;
+      min-width: 0;
+      border-color: var(--line) !important;
+      border-radius: 24px !important;
+      background: var(--surface);
+      box-shadow: 0 8px 24px rgba(17, 24, 39, 0.045);
+    }
+
+    .place-card:hover {
+      box-shadow: 0 18px 42px rgba(17, 24, 39, 0.12) !important;
+    }
+
+    .place-card:focus-visible {
+      outline: 3px solid rgba(255, 122, 24, 0.35);
+      outline-offset: 4px;
+    }
+
+    .place-card > div:first-child,
+    .place-carousel {
+      height: clamp(190px, 20vw, 235px) !important;
+    }
+
+    .place-card .p-6 {
+      min-height: 154px;
+      padding: 22px 24px !important;
+    }
+
+    .place-card .p-6 p {
+      color: #4b5563;
+      line-height: 1.7;
+    }
+
+    #transcriptContent {
+      color: #4b5563;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+    }
+
+    #transcriptContent strong {
+      display: inline-block;
+      margin-top: 0.65rem;
+      color: #1f2937;
+      font-weight: 800;
+    }
+
+    #transcriptContent strong:first-child {
+      margin-top: 0;
+    }
+
+    #transcriptContent .transcript-heading {
+      display: block;
+      margin: 0.9rem 0 0.25rem;
+      color: var(--brand-dark);
+      font-size: 0.78rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    #transcriptContent .transcript-bullet {
+      display: block;
+      padding-left: 1rem;
+      position: relative;
+    }
+
+    #transcriptContent .transcript-bullet::before {
+      content: '•';
+      position: absolute;
+      left: 0;
+      color: var(--brand);
+      font-weight: 800;
+    }
+
+    section:has(.feature-toolbar.destination-open) {
+      padding-top: 92px !important;
+    }
+
+    .cards-grid.faded {
+      display: grid;
+      grid-template-columns: minmax(320px, 380px) minmax(360px, 440px);
+      justify-content: center;
+      align-items: start;
+      gap: clamp(24px, 4vw, 56px);
+      max-width: 920px;
+      min-height: 0 !important;
+      margin: 0 auto;
+      padding-top: 0;
+    }
+
+    .cards-grid.faded .place-card.active {
+      width: 100%;
+      max-width: none;
+      margin: 44px 0 0;
+      animation: slideUp 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    }
+
+    #experience {
+      width: 100%;
+      max-width: 440px;
+      margin: 0;
+    }
+
+    #experience > div:first-child {
+      justify-content: flex-start;
+      margin-bottom: 18px;
+    }
+
+    #closeExperience {
+      min-height: 40px;
+      padding: 0 18px;
+      border-color: var(--line);
+      box-shadow: 0 4px 12px rgba(17, 24, 39, 0.05);
+    }
+
+    #experience > div:last-child {
+      padding: 28px !important;
+      border-radius: 24px;
+      box-shadow: 0 16px 40px rgba(17, 24, 39, 0.08) !important;
+    }
+
+    #experience > div:last-child > div:first-child {
+      margin-bottom: 22px;
+      padding-bottom: 20px;
+    }
+
+    #previewTitle {
+      margin-top: 10px;
+      font-size: clamp(1.75rem, 3vw, 2.25rem);
+    }
+
+    #shareDestination {
+      min-height: 36px;
+      transition: 180ms ease;
+    }
+
+    #shareDestination:hover {
+      border-color: rgba(255, 122, 24, 0.45);
+      color: var(--brand-dark);
+      background: #fff7ed;
+    }
+
+    #generateBtn {
+      box-shadow: 0 12px 24px rgba(255, 106, 0, 0.2);
+    }
+
+    body.dark-mode .place-card .p-6 p {
+      color: #cbd5e1;
+    }
+
+    body.dark-mode #transcriptContent {
+      color: #cbd5e1;
+    }
+
+    body.dark-mode #transcriptContent strong {
+      color: #f9fafb;
+    }
+
+    body.dark-mode #shareDestination:hover {
+      background: #273244;
+    }
+
+    body.dark-mode #searchMessage {
+      background: #1f2937;
+      border-color: #374151;
+    }
+
+    body.dark-mode #searchMessage strong {
+      color: #f9fafb;
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        scroll-behavior: auto !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    .favorite-button {
+      top: 14px;
+      right: 14px;
+      width: 38px;
+      height: 38px;
+      padding: 0;
+      font-size: 18px;
+      box-shadow: 0 5px 14px rgba(17, 24, 39, 0.14);
+      transition: 180ms ease;
+    }
+
+    .favorite-button:hover {
+      transform: scale(1.08);
+      color: #ef4444;
+    }
+
+    .cards-grid.search-row .place-card:not(.search-preview-card) {
+      flex: 0 1 360px;
+      max-width: 360px;
+    }
+
+    .back-to-top {
+      right: clamp(16px, 3vw, 32px);
+      bottom: clamp(16px, 3vw, 32px);
+      width: 44px;
+      height: 44px;
+      padding: 0;
+      font-size: 18px;
+      box-shadow: 0 10px 24px rgba(17, 24, 39, 0.18);
+    }
+
+    button,
+    select,
+    input {
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    button:focus-visible,
+    select:focus-visible,
+    input:focus-visible {
+      outline: 3px solid rgba(255, 122, 24, 0.3);
+      outline-offset: 2px;
+    }
+
+    body.dark-mode {
+      background: #111827;
+    }
+
+    body.dark-mode header {
+      background: rgba(17, 24, 39, 0.9) !important;
+      border-bottom-color: #273244 !important;
+    }
+
+    body.dark-mode header input {
+      background: #1f2937 !important;
+      border-color: #374151 !important;
+      color: #f9fafb;
+    }
+
+    body.dark-mode #themeToggle,
+    body.dark-mode .feature-toolbar {
+      background: #1f2937;
+      border-color: #374151;
+    }
+
+    body.dark-mode .feature-toolbar select,
+    body.dark-mode .feature-toolbar button {
+      color: #e5e7eb;
+    }
+
+    body.dark-mode .feature-toolbar select:hover,
+    body.dark-mode .feature-toolbar button:hover {
+      background: #273244;
+      border-color: #4b5563;
+    }
+
+    @media (max-width: 700px) {
+      header {
+        height: auto;
+      }
+
+      header > div {
+        height: auto !important;
+        min-height: 72px;
+        flex-wrap: wrap;
+        gap: 12px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+      }
+
+      header > div > div:last-child {
+        width: 100%;
+        max-width: none;
+        margin-left: 0;
+      }
+
+      header > div > div:last-child > div {
+        max-width: none;
+      }
+
+      #searchBtn {
+        display: inline-flex !important;
+        align-items: center;
+        justify-content: center;
+        min-width: 88px;
+      }
+
+      section.pt-32 {
+        padding-top: 142px !important;
+      }
+
+      .feature-toolbar {
+        align-items: stretch;
+        border-radius: 16px;
+      }
+
+      .feature-toolbar select,
+      .feature-toolbar button {
+        flex: 1 1 calc(50% - 8px);
+        min-width: 0;
+      }
+
+      #resultCount {
+        width: 100%;
+        margin-left: 0;
+        padding: 4px 8px 2px;
+      }
+
+      .cards-grid {
+        grid-template-columns: 1fr !important;
+      }
+
+      section:has(.feature-toolbar.destination-open) {
+        padding-top: 118px !important;
+      }
+
+      .cards-grid.faded {
+        display: flex;
+        gap: 22px;
+        max-width: 100%;
+        padding-top: 0;
+      }
+
+      .cards-grid.faded .place-card.active {
+        width: 100%;
+        max-width: 380px;
+        margin: 0 auto;
+      }
+
+      #experience {
+        max-width: 380px;
+        margin: 0 auto;
+      }
+
+      #experience > div:last-child {
+        padding: 22px !important;
+      }
+
+      #closeExperience {
+        position: sticky;
+        top: 84px;
+        z-index: 30;
+        box-shadow: 0 8px 18px rgba(17, 24, 39, 0.12);
+      }
+
+      .cards-grid.search-row .place-card:not(.search-preview-card) {
+        flex-basis: 100%;
+        max-width: 100%;
+      }
+    }
+
+    @media (min-width: 701px) and (max-width: 1024px) {
+      .cards-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen text-gray-800 bg-[#fdfbf7] font-sans selection:bg-[#ff8a1f] selection:text-white">
+
+  <header
+    class="fixed top-0 left-0 w-full z-50 bg-white/80 backdrop-blur-md border-b border-gray-100 shadow-sm transition-all">
+    <div class="w-full px-6 h-20 flex items-center justify-between">
+      <div class="flex items-center gap-3 shrink-0 cursor-pointer hover:opacity-80 transition-opacity">
+        <div
+          class="w-11 h-11 bg-gradient-to-br from-[#ff8a1f] to-[#ff6a00] rounded-xl flex items-center justify-center shadow-lg shadow-orange-200">
+          <img
+            src="assets/images/compass-removebg-preview.png"
+            alt="logo" class="w-6 h-6 object-contain">
+        </div>
+        <div>
+          <div class="font-bold text-lg tracking-tight text-gray-900 leading-none">Travel Guide</div>
+          <div class="hidden sm:block text-[11px] text-gray-500 font-medium tracking-wide mt-1">AI Travel Companion
+          </div>
+        </div>
+      </div>
+      <div class="flex items-center gap-2 flex-1 justify-end max-w-lg ml-6">
+        <div class="relative w-full max-w-[320px] group">
+          <input id="searchInput" placeholder="Search destination..."
+            class="w-full pl-5 pr-12 py-2.5 rounded-full border border-gray-200 bg-gray-50/50 text-sm font-medium focus:bg-white focus:outline-none focus:border-[#ff8a1f] focus:ring-4 focus:ring-orange-50 transition-all duration-300 placeholder-gray-400 group-hover:bg-white group-hover:shadow-sm">
+          <button id="clearSearch" class="clear-search hidden" type="button" aria-label="Clear search">×</button>
+          <div class="absolute right-4 top-2.5 text-gray-400 pointer-events-none"><svg class="w-5 h-5" fill="none"
+              stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+            </svg></div>
+        </div>
+        <button id="searchBtn"
+          class="hidden sm:block px-6 py-2.5 rounded-full bg-gray-900 text-white font-semibold text-sm hover:bg-[#ff8a1f] hover:shadow-lg hover:shadow-orange-200 active:scale-95 transition-all duration-300">Explore</button>
+        <button id="themeToggle" type="button" aria-label="Toggle dark mode">☾</button>
+      </div>
+    </div>
+  </header>
+
+  <section class="pt-32 pb-20 px-6">
+    <div class="max-w-7xl mx-auto">
+
+      <div id="desktopBackContainer" class="hidden w-full mx-auto mb-6 pl-1"></div>
+      <div class="feature-toolbar">
+        <select id="stateFilter" aria-label="Filter by state"><option value="">All States</option></select>
+        <select id="categoryFilter" aria-label="Filter by category"><option value="">All Categories</option></select>
+        <button id="favoritesToggle" type="button">♥ Favorites</button>
+        <button id="randomDestination" type="button">Surprise Me</button>
+        <span id="resultCount" class="text-xs text-gray-500">50 destinations</span>
+      </div>
+
+      <div
+        class="cards cards-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-10 w-full mx-auto min-h-[600px] relative
+                lg:[&.faded]:flex-row lg:[&.faded]:items-start lg:[&.faded]:justify-center lg:[&.faded]:gap-[60px] lg:[&.faded]:pt-10">
+
+        <div class="place-card bg-white rounded-[2rem] overflow-hidden border border-gray-100 cursor-pointer hover:-translate-y-2 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:border-orange-100 group relative
+                  lg:[&.active]:w-[480px] lg:[&.active]:max-w-none" data-place="Taj Mahal"
+          data-image="assets/images/Taj_Mahal_Edited.jpeg">
+          <div class="overflow-hidden h-[200px] relative">
+            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 z-10">
+            </div>
+            <img src="assets/images/Taj_Mahal_Edited.jpeg" alt="Taj Mahal"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+            <div
+              class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase text-gray-800 shadow-sm">
+              Agra</div>
+          </div>
+          <div class="p-6">
+            <span class="text-[11px] text-[#ff8a1f] font-bold uppercase tracking-widest">World Wonder</span>
+            <h3
+              class="mt-2 mb-1 text-xl font-['Playfair_Display',_serif] font-bold text-gray-900 group-hover:text-[#ff8a1f] transition-colors">
+              Taj Mahal</h3>
+            <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">An immense mausoleum of white marble, built in
+              Agra between 1631 and 1648.</p>
+          </div>
+        </div>
+
+        <div class="place-card bg-white rounded-[2rem] overflow-hidden border border-gray-100 cursor-pointer hover:-translate-y-2 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:border-orange-100 group relative
+                  lg:[&.active]:w-[480px] lg:[&.active]:max-w-none" data-place="Red Fort"
+          data-image="assets/images/Delhi_fort.jpg">
+          <div class="overflow-hidden h-[200px] relative">
+            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 z-10">
+            </div>
+            <img src="assets/images/Delhi_fort.jpg" alt="Red Fort"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+            <div
+              class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase text-gray-800 shadow-sm">
+              New Delhi</div>
+          </div>
+          <div class="p-6">
+            <span class="text-[11px] text-[#ff8a1f] font-bold uppercase tracking-widest">Historical Fort</span>
+            <h3
+              class="mt-2 mb-1 text-xl font-['Playfair_Display',_serif] font-bold text-gray-900 group-hover:text-[#ff8a1f] transition-colors">
+              Red Fort</h3>
+            <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">A historic fort in the city of Delhi in India
+              that served as the main residence of the Mughal Emperors.</p>
+          </div>
+        </div>
+
+        <div class="place-card bg-white rounded-[2rem] overflow-hidden border border-gray-100 cursor-pointer hover:-translate-y-2 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:border-orange-100 group relative
+                  lg:[&.active]:w-[480px] lg:[&.active]:max-w-none" data-place="Gateway of India"
+          data-image="assets/images/Mumbai_Gateway_of_India.jpg">
+          <div class="overflow-hidden h-[200px] relative">
+            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 z-10">
+            </div>
+            <img src="assets/images/Mumbai_Gateway_of_India.jpg"
+              alt="Gateway of India"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+            <div
+              class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase text-gray-800 shadow-sm">
+              Mumbai</div>
+          </div>
+          <div class="p-6">
+            <span class="text-[11px] text-[#ff8a1f] font-bold uppercase tracking-widest">Monument</span>
+            <h3
+              class="mt-2 mb-1 text-xl font-['Playfair_Display',_serif] font-bold text-gray-900 group-hover:text-[#ff8a1f] transition-colors">
+              Gateway of India</h3>
+            <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">An arch-monument built during the 20th century
+              in Bombay, India.</p>
+          </div>
+        </div>
+
+        <div class="place-card bg-white rounded-[2rem] overflow-hidden border border-gray-100 cursor-pointer hover:-translate-y-2 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:border-orange-100 group relative
+                  lg:[&.active]:w-[480px] lg:[&.active]:max-w-none" data-place="Hawa Mahal"
+          data-image="assets/images/Hawa_Mahal.jpg">
+          <div class="overflow-hidden h-[200px] relative">
+            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 z-10">
+            </div>
+            <img
+              src="assets/images/Hawa_Mahal.jpg"
+              alt="Hawa Mahal"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+            <div
+              class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase text-gray-800 shadow-sm">
+              Jaipur</div>
+          </div>
+          <div class="p-6">
+            <span class="text-[11px] text-[#ff8a1f] font-bold uppercase tracking-widest">Architecture</span>
+            <h3
+              class="mt-2 mb-1 text-xl font-['Playfair_Display',_serif] font-bold text-gray-900 group-hover:text-[#ff8a1f] transition-colors">
+              Hawa Mahal</h3>
+            <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">The 'Palace of Winds', a palace in Jaipur,
+              India, made with the red and pink sandstone.</p>
+          </div>
+        </div>
+
+        <div class="place-card bg-white rounded-[2rem] overflow-hidden border border-gray-100 cursor-pointer hover:-translate-y-2 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:border-orange-100 group relative
+                  lg:[&.active]:w-[480px] lg:[&.active]:max-w-none" data-place="Golden Temple"
+          data-image="assets/images/Golden_Temple.jpg">
+          <div class="overflow-hidden h-[200px] relative">
+            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 z-10">
+            </div>
+            <img src="assets/images/Golden_Temple.jpg"
+              alt="Golden Temple"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+            <div
+              class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase text-gray-800 shadow-sm">
+              Amritsar</div>
+          </div>
+          <div class="p-6">
+            <span class="text-[11px] text-[#ff8a1f] font-bold uppercase tracking-widest">Spiritual</span>
+            <h3
+              class="mt-2 mb-1 text-xl font-['Playfair_Display',_serif] font-bold text-gray-900 group-hover:text-[#ff8a1f] transition-colors">
+              Golden Temple</h3>
+            <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">Also known as Sri Harmandir Sahib, it is the
+              holiest Gurdwara of Sikhism.</p>
+          </div>
+        </div>
+
+        <div class="place-card bg-white rounded-[2rem] overflow-hidden border border-gray-100 cursor-pointer hover:-translate-y-2 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:border-orange-100 group relative
+                  lg:[&.active]:w-[480px] lg:[&.active]:max-w-none" data-place="Mysore Palace"
+          data-image="assets/images/Mysore_Palace_Morning.jpg">
+          <div class="overflow-hidden h-[200px] relative">
+            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 z-10">
+            </div>
+            <img src="assets/images/Mysore_Palace_Morning.jpg" alt="Mysore Palace"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+            <div
+              class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase text-gray-800 shadow-sm">
+              Mysore</div>
+          </div>
+          <div class="p-6">
+            <span class="text-[11px] text-[#ff8a1f] font-bold uppercase tracking-widest">Royal Palace</span>
+            <h3
+              class="mt-2 mb-1 text-xl font-['Playfair_Display',_serif] font-bold text-gray-900 group-hover:text-[#ff8a1f] transition-colors">
+              Mysore Palace</h3>
+            <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">A historical palace and a royal residence at
+              Mysore in the Indian State of Karnataka.</p>
+          </div>
+        </div>
+
+        <div class="place-card bg-white rounded-[2rem] overflow-hidden border border-gray-100 cursor-pointer hover:-translate-y-2 hover:shadow-[0_10px_40px_-10px_rgba(0,0,0,0.08)] hover:border-orange-100 group relative
+                  lg:[&.active]:w-[480px] lg:[&.active]:max-w-none" data-place="Amaravati Stupa"
+          data-image="assets/images/Amaravati_Stupa.jpg">
+          <div class="overflow-hidden h-[200px] relative">
+            <div class="absolute inset-0 bg-black/10 group-hover:bg-transparent transition-colors duration-500 z-10">
+            </div>
+            <img src="assets/images/Amaravati_Stupa.jpg" alt="Amaravati Stupa"
+              class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110">
+            <div
+              class="absolute top-4 left-4 z-20 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-[10px] font-bold tracking-wider uppercase text-gray-800 shadow-sm">
+              Amaravati, Andhra Pradesh</div>
+          </div>
+          <div class="p-6">
+            <span class="text-[11px] text-[#ff8a1f] font-bold uppercase tracking-widest">Historical Site</span>
+            <h3
+              class="mt-2 mb-1 text-xl font-['Playfair_Display',_serif] font-bold text-gray-900 group-hover:text-[#ff8a1f] transition-colors">
+              Amaravati Stupa</h3>
+            <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed">A historical stupa in the city of Amaravati in Andhra Pradesh, India.</p>
+          </div>
+        </div>
+
+        <div id="searchPreviewCard"
+          class="place-card search-preview-card hidden bg-white rounded-[2rem] overflow-hidden border border-gray-100 cursor-pointer lg:[&.active]:w-[480px] lg:[&.active]:max-w-none">
+          <div class="overflow-hidden h-[200px] relative">
+            <img id="searchPreviewImage" src="" alt="Destination preview" class="w-full h-full object-cover">
+          </div>
+          <div class="p-6">
+            <span class="text-[11px] text-[#ff8a1f] font-bold uppercase tracking-widest">Search Result</span>
+            <h3 id="searchPreviewTitle"
+              class="mt-2 mb-1 text-xl font-['Playfair_Display',_serif] font-bold text-gray-900"></h3>
+            <p class="text-sm text-gray-500">Destination found via search.</p>
+          </div>
+        </div>
+
+        <div id="experience" class="hidden w-full max-w-[440px] shrink-0">
+          <div class="flex justify-start mb-6">
+            <button id="closeExperience"
+              class="px-5 py-2.5 bg-white border border-gray-200 rounded-full text-sm font-medium text-gray-600 hover:text-[#ff8a1f] hover:border-[#ff8a1f]/30 hover:shadow-sm transition-all flex items-center gap-2 group">
+              <span class="group-hover:-translate-x-0.5 transition-transform">←</span> Back to Places
+            </button>
+          </div>
+
+          <div class="p-8 bg-white border border-gray-100 rounded-[2rem] shadow-2xl shadow-gray-200/50">
+            <div class="border-b border-dashed border-gray-200 mb-6 pb-6">
+              <span
+                class="text-[10px] font-bold uppercase tracking-widest text-[#ff8a1f] bg-orange-50 px-2 py-1 rounded-md">AI
+                Guide Ready</span>
+              <h3 id="previewTitle"
+                class="mt-3 text-3xl font-['Playfair_Display',_serif] font-bold text-gray-900 leading-tight"></h3>
+              <p id="visitTiming" class="mt-2 text-xs text-gray-500"></p>
+              <p id="nearbyAttractions" class="mt-2 text-xs text-gray-500"></p>
+              <button id="shareDestination" class="mt-3 rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold">Share destination</button>
+            </div>
+
+            <div class="mb-6">
+              <h4 class="mb-3 text-xs uppercase tracking-widest text-gray-400 font-bold">Duration & Detail</h4>
+              <div class="flex gap-4" data-group="length">
+                <button
+                  class="option active flex-1 p-4 rounded-2xl border border-gray-200 bg-gray-50 text-left cursor-pointer hover:border-[#ff8a1f] transition-all relative overflow-hidden group [&.active]:bg-[#fff1e5] [&.active]:border-[#ff8a1f] [&.active]:shadow-lg [&.active]:shadow-orange-100"
+                  data-value="Summary">
+                  <div class="relative z-10">
+                    <strong class="block text-sm mb-1 text-gray-900">Summarized</strong>
+                    <span class="text-xs text-gray-500 group-hover:text-[#ff8a1f]/80">~1 min overview</span>
+                  </div>
+                </button>
+                <button
+                  class="option flex-1 p-4 rounded-2xl border border-gray-200 bg-gray-50 text-left cursor-pointer hover:border-[#ff8a1f] transition-all relative overflow-hidden group [&.active]:bg-[#fff1e5] [&.active]:border-[#ff8a1f] [&.active]:shadow-lg [&.active]:shadow-orange-100"
+                  data-value="Detailed">
+                  <div class="relative z-10">
+                    <strong class="block text-sm mb-1 text-gray-900">Detailed</strong>
+                    <span class="text-xs text-gray-500 group-hover:text-[#ff8a1f]/80">~3 min guide</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <div class="mb-8">
+              <h4 class="mb-3 text-xs uppercase tracking-widest text-gray-400 font-bold">Audio Settings</h4>
+              <div class="flex gap-3">
+                <div class="relative flex-1">
+                  <select id="selectLanguage"
+                    class="w-full appearance-none px-5 py-3.5 rounded-xl border border-gray-200 text-sm font-semibold focus:outline-none focus:border-[#ff8a1f] bg-white text-gray-800 shadow-sm">
+                    <option>English</option>
+                    <option>Hindi</option>
+                    <option>Tamil</option>
+                    <option>Telugu</option>
+                  </select>
+                  <div class="absolute right-4 top-4 text-gray-400 pointer-events-none text-xs">▼</div>
+                </div>
+                <div
+                  class="flex border border-gray-200 rounded-xl overflow-hidden bg-gray-50 p-1.5 w-[160px] shadow-inner"
+                  data-group="voice">
+                  <button
+                    class="active flex-1 rounded-lg text-xs font-bold text-gray-500 transition-all [&.active]:bg-white [&.active]:text-[#ff8a1f] [&.active]:shadow-sm"
+                    data-value="Male">Male</button>
+                  <button
+                    class="flex-1 rounded-lg text-xs font-bold text-gray-500 transition-all [&.active]:bg-white [&.active]:text-[#ff8a1f] [&.active]:shadow-sm"
+                    data-value="Female">Female</button>
+                </div>
+              </div>
+            </div>
+
+            <button id="generateBtn"
+              class="w-full py-4 bg-gradient-to-r from-[#ff8a1f] to-[#ff6a00] text-white rounded-xl font-bold text-sm shadow-xl shadow-orange-200 hover:-translate-y-0.5 active:translate-y-0 transition-all disabled:opacity-70 disabled:cursor-not-allowed">Generate
+              Audio Guide</button>
+            <p id="audioStatus" class="mt-3 text-center text-xs text-gray-500" role="status" aria-live="polite"></p>
+
+            <div id="audioSection" class="hidden mt-8 pt-6 border-t border-gray-100">
+              <div class="mb-5 border border-gray-200 rounded-2xl bg-gray-50 p-4">
+                <div class="flex justify-between items-center cursor-pointer select-none group" id="transcriptToggle">
+                  <span
+                    class="text-xs font-bold text-gray-500 group-hover:text-[#ff8a1f] transition-colors tracking-wide uppercase">Read
+                    Transcript</span>
+                  <span class="text-[10px] text-gray-400 transition-transform duration-200"
+                    id="transcriptArrow">▼</span>
+                </div>
+                <div
+                  class="hidden mt-4 max-h-[160px] overflow-y-auto text-sm leading-7 text-gray-600 custom-scroll pr-2"
+                  id="transcriptContent">
+                  <p id="scriptText"></p>
+                  <button id="copyDescription" class="mt-3 rounded-full border border-gray-200 px-3 py-2 text-xs font-semibold" type="button">Copy description</button>
+                </div>
+              </div>
+              <audio id="audioPlayer" controls class="w-full h-11 rounded-lg shadow-sm"></audio>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <button id="backToTop" class="back-to-top" type="button" aria-label="Back to top">↑</button>
+
+  <script src="api-config.js"></script>
+  <script src="destinations-data.js"></script>
+  <script src="carousel-data.js"></script>
+  <script src="index.js"></script>
+</body>
+
+</html>
