@@ -100,15 +100,25 @@ def generate_speech(text, voice_id, locale):
         raise
 
 
+
 def generate_description(place, answer_type, language):
     if answer_type not in PROMPTS:
         raise ValueError("answerType must be Summary or Detailed")
-    prompt = PROMPTS[answer_type].format(place=place, language=language)
-    response = get_gemini_client().models.generate_content(
+
+    prompt = PROMPTS[answer_type].format(
+        place=place,
+        language=language
+    )
+
+    client = get_gemini_client()
+
+    response = client.models.generate_content(
         model="gemini-3.1-flash-lite",
         contents=prompt
     )
+
     return response.text
+
 
 
 @app.get("/health")
