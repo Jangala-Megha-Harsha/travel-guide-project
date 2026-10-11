@@ -143,6 +143,7 @@ def generate_audio_guide():
             "audioBase64": encoded_audio,
         })
     except (RuntimeError, ValueError) as error:
+        app.logger.exception("Audio guide configuration or validation error")
         return jsonify({"error": str(error)}), 400
     except requests.RequestException:
         app.logger.exception("Murf API request failed")
