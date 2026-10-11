@@ -545,9 +545,13 @@ generateButton.addEventListener('click', async () => {
       })
     });
 
-    if (!response.ok) throw new Error('Generation failed');
-
-    const data = await response.json();
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(data.error || `Generation failed (HTTP ${response.status})`);
+    }
+    if (!data.description || !data.audioBase64) {
+      throw new Error('The audio service returned an incomplete response.');
+    }
 
     // Update UI with Result
     transcriptText.innerHTML = renderTranscript(data.description);
@@ -568,9 +572,13 @@ generateButton.addEventListener('click', async () => {
   } catch (err) {
     console.error(err);
     generateButton.textContent = 'Generate Audio Guide';
-    audioStatus.textContent = 'Could not generate the guide. Please try again.';
+    audioStatus.textContent = err.message || 'Could not generate the guide. Please try again.';
     generateButton.disabled = false;
   }
+});
+
+audioPlayer.addEventListener('error', () => {
+  audioStatus.textContent = 'The audio was generated, but your browser could not play it.';
 });
 
 // Transcript Toggle
